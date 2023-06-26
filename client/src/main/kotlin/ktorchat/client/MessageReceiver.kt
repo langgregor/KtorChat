@@ -1,15 +1,18 @@
 package ktorchat.client
 
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.http.*
+import io.ktor.serialization.gson.*
 import io.ktor.server.application.*
-import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.jetty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import ktorchat.common.MessageData
 import kotlinx.coroutines.channels.Channel
 import ktorchat.common.Configuration
+import ktorchat.common.MessageData
+import ktorchat.common.ServerStartFinishedCallback
 
 /**
  * Receives messages from server and puts them into a channel.
@@ -17,8 +20,8 @@ import ktorchat.common.Configuration
 class MessageReceiver() {
     val channel = Channel<MessageData>()
 
-    init {
-        embeddedServer(CIO, host = Configuration.CLIENT_HOST, port = Configuration.CLIENT_PORT,  module = { module() }).start(wait = true)
+    fun start() {
+        embeddedServer(Jetty, port = Configuration.CLIENT_PORT, module = { module() }).start(wait = true)
     }
 
     private fun Application.module() {
@@ -28,7 +31,12 @@ class MessageReceiver() {
 
     private fun Application.installPlugins() {
         install(ContentNegotiation) {
-            json()
+            gson()
+        }
+        install(ServerStartFinishedCallback) {
+            callback {
+                println("Receiver is running.")
+            }
         }
     }
 
@@ -37,6 +45,7 @@ class MessageReceiver() {
             post("/receive") {
                 val message = call.receive<MessageData>()
                 channel.send(message)
+                call.respond(HttpStatusCode.OK)
             }
         }
     }

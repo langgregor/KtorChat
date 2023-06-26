@@ -1,14 +1,9 @@
 package ktorchat.common
 
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
 import java.util.*
 
-@Serializable
-data class MessageData(val user : UserData, val message : String, @Contextual val date : Date)
+data class MessageData(val targetUsers: Set<UUID>, val sourceUser: UUID, val message: String)
 
-@Serializable
-data class UserData(val id: String)
+data class UserData(val username: String)
 
-@Serializable
-data class UserDetails(val host: String, @Contextual val loginDate : Date)
+data class LoginResponse(val success: Boolean, val id: UUID?, val errorMessage: String?)
