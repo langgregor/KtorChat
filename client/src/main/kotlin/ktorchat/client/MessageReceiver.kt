@@ -17,11 +17,21 @@ import ktorchat.common.ServerStartFinishedCallback
 /**
  * Receives messages from server and puts them into a channel.
  */
-class MessageReceiver {
+class MessageReceiver(private val sourceHost: String) {
     val channel = Channel<MessageData>()
+    private var server: JettyApplicationEngine? = null
 
     fun start() {
-        embeddedServer(Jetty, port = Configuration.CLIENT_PORT, module = { module() }).start(wait = true)
+        server = embeddedServer(
+            Jetty,
+            port = Configuration.CLIENT_PORT,
+            module = { module() })
+        server?.start(wait = true)
+    }
+
+    fun stop() {
+        server?.stop()
+        channel.close()
     }
 
     private fun Application.module() {
@@ -44,8 +54,12 @@ class MessageReceiver {
         routing {
             post("/receive") {
                 val message = call.receive<MessageData>()
-                channel.send(message)
-                call.respond(HttpStatusCode.OK)
+                if (call.request.local.remoteHost == sourceHost) {
+                    channel.send(message)
+                    call.respond(HttpStatusCode.OK)
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized)
+                }
             }
         }
     }

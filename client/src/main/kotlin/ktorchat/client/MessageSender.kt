@@ -7,10 +7,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.gson.*
-import ktorchat.common.Configuration
-import ktorchat.common.LoginResponse
-import ktorchat.common.MessageData
-import ktorchat.common.UserData
+import ktorchat.common.*
 import java.util.*
 
 /**
@@ -33,10 +30,9 @@ class MessageSender(private val serverHost: String) {
     }
 
     suspend fun send(messageData: MessageData) {
-        val response = client.post("message") {
+        client.post("message") {
             setBody(messageData)
         }
-        println("Sent message! -> $response")
     }
 
     suspend fun login(user: UserData): UUID? {
@@ -46,5 +42,13 @@ class MessageSender(private val serverHost: String) {
 
         println(response.errorMessage ?: "Logged In! -> $response")
         return response.id
+    }
+
+    suspend fun logout(logoutData: LogoutData) {
+        val response = client.post("logout") {
+            setBody(logoutData)
+        }
+
+        println("Logged out! -> $response")
     }
 }
