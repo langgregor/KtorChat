@@ -15,31 +15,14 @@ import ktorchat.common.MessageData
 import ktorchat.common.ServerStartFinishedCallback
 import ktorchat.common.UserData
 
-class MessageServer {
-    private val messageChannel = Channel<MessageData>()
-    private val messageDistributor = MessageDistributor()
-    private val userManager = UserManager()
+class MessageServer(private val userManager: UserManager) {
+    val messageChannel = Channel<MessageData>()
 
-    fun start() = embeddedServer(
-        Jetty,
-        port = Configuration.SERVER_PORT,
-        module = { module() }).start(wait = true)
-
-    private suspend fun distributeMessages() {
-        println("Start DistributeMessage Loop on Thread ${Thread.currentThread().name}")
-        for (msg in messageChannel) {
-            val replacementMessage =
-                if (msg.targetUsers.isEmpty()) {
-                    MessageData(userManager.getAllUsers().minus(msg.sourceUser), msg.sourceUser, msg.message)
-                } else {
-                    msg
-                }
-
-            messageDistributor.distribute(replacementMessage) {
-                userManager.getUser(it)?.host
-            }
-        }
-    }
+    fun start() =
+        embeddedServer(
+            Jetty,
+            port = Configuration.SERVER_PORT,
+            module = { module() }).start(wait = true)
 
     private fun Application.module() {
         installPlugins()
@@ -54,8 +37,7 @@ class MessageServer {
         }
         install(ServerStartFinishedCallback) {
             callback {
-                println("Server running and listening on ${it.config.host}:${it.config.port}.")
-                distributeMessages()
+                println("Server is running.")
             }
         }
     }

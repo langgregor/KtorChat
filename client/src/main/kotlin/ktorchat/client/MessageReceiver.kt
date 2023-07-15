@@ -17,7 +17,7 @@ import ktorchat.common.ServerStartFinishedCallback
 /**
  * Receives messages from server and puts them into a channel.
  */
-class MessageReceiver() {
+class MessageReceiver {
     val channel = Channel<MessageData>()
 
     fun start() {
