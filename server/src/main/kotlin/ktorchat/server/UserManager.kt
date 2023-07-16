@@ -16,7 +16,7 @@ class UserManager {
     fun login(userdata: UserData, host: String): LoginResponse {
         val username = userdata.username
 
-        if (usernames.contains(username)) {
+        if (usernames.map { it.lowercase() }.contains(username.lowercase())) {
             val loginResponse = LoginResponse(false, null, "Duplicate username")
             println("Login failed: $username@$host (${loginResponse.errorMessage})")
             return loginResponse

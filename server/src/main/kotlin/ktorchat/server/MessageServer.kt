@@ -21,6 +21,8 @@ class MessageServer(private val userManager: UserManager) {
     companion object {
         private const val RATE_LIMIT_LOGIN = "login"
         private const val RATE_LIMIT_MESSAGE = "message"
+        private const val SERVER_NAME = "SERVER"
+        private val SERVER_UUID = UUID.nameUUIDFromBytes(SERVER_NAME.toByteArray())
     }
 
     val messageChannel = Channel<MessageData>()
@@ -59,7 +61,7 @@ class MessageServer(private val userManager: UserManager) {
                 call.respond(HttpStatusCode.BadRequest, cause.reasons.joinToString())
             }
         }
-        install(ServerStartFinishedCallback) {
+        install(ServerReadyCallback) {
             callback {
                 println("Server is running.")
             }
@@ -68,17 +70,21 @@ class MessageServer(private val userManager: UserManager) {
 
     private fun Application.configureRoutes() {
         routing {
-            rateLimit(RateLimitName(Companion.RATE_LIMIT_LOGIN)) {
+            rateLimit(RateLimitName(RATE_LIMIT_LOGIN)) {
                 post("/login") {
                     val userdata = call.receive<UserData>()
                     val response = userManager.login(userdata, call.request.local.remoteHost)
-                    call.respond(if (response.success) HttpStatusCode.OK else HttpStatusCode.Unauthorized, response)
+                    call.respondIf(check = { response.success }) {
+                        sendServerMessage("${userdata.username} joined.")
+                    }
                 }
             }
 
             post("/logout") {
                 val data = call.receive<LogoutData>()
                 call.respondIfAuthorized(data.uuid) {
+                    val username = userManager.getUser(data.uuid)?.username ?: "<???>"
+                    sendServerMessage("$username left.")
                     userManager.logout(data.uuid)
                 }
             }
@@ -95,12 +101,25 @@ class MessageServer(private val userManager: UserManager) {
         }
     }
 
-    private suspend fun ApplicationCall.respondIfAuthorized(userUuid: UUID, block: suspend () -> Unit) {
-        if (userManager.isAuthorized(userUuid, this.request.local.remoteHost)) {
+    private suspend fun sendServerMessage(message: String) =
+        messageChannel.send(MessageData(emptySet(), SERVER_UUID, message, SERVER_NAME))
+
+    private suspend fun ApplicationCall.respondIf(
+        statusCodeFail: HttpStatusCode = HttpStatusCode.Unauthorized,
+        check: () -> Boolean,
+        block: suspend () -> Unit
+    ) {
+        if (check()) {
             block()
             this.respond(HttpStatusCode.OK)
         } else {
-            this.respond(HttpStatusCode.Unauthorized)
+            this.respond(statusCodeFail)
+        }
+    }
+
+    private suspend fun ApplicationCall.respondIfAuthorized(userUuid: UUID, block: suspend () -> Unit) {
+        respondIf(check = { userManager.isAuthorized(userUuid, this.request.local.remoteHost) }) {
+            block()
         }
     }
 }

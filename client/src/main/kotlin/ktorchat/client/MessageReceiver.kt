@@ -12,7 +12,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.channels.Channel
 import ktorchat.common.Configuration
 import ktorchat.common.MessageData
-import ktorchat.common.ServerStartFinishedCallback
+import ktorchat.common.ServerReadyCallback
 
 /**
  * Receives messages from server and puts them into a channel.
@@ -43,7 +43,7 @@ class MessageReceiver(private val sourceHost: String) {
         install(ContentNegotiation) {
             gson()
         }
-        install(ServerStartFinishedCallback) {
+        install(ServerReadyCallback) {
             callback {
                 println("Receiver is running.")
             }

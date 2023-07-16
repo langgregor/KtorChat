@@ -5,7 +5,7 @@ import io.ktor.server.application.hooks.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 
-class ServerStartFinishedCallbackConfiguration() {
+class ServerReadyCallbackConfiguration() {
     var block: suspend CoroutineScope.(ApplicationEnvironment) -> Unit = {}
 
     fun callback(block: suspend CoroutineScope.(ApplicationEnvironment) -> Unit) {
@@ -13,8 +13,8 @@ class ServerStartFinishedCallbackConfiguration() {
     }
 }
 
-val ServerStartFinishedCallback = createApplicationPlugin(
-    name = "ServerStatusLogging", createConfiguration = ::ServerStartFinishedCallbackConfiguration
+val ServerReadyCallback = createApplicationPlugin(
+    name = "ServerStatusLogging", createConfiguration = ::ServerReadyCallbackConfiguration
 ) {
     on(MonitoringEvent(ServerReady)) {
         runBlocking {
