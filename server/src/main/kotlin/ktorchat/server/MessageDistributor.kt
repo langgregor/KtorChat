@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.client.utils.*
 import io.ktor.http.*
 import io.ktor.serialization.gson.*
@@ -42,21 +43,23 @@ class MessageDistributor(
 
         targets.forEach { uuid ->
             val clientReceiverHost = uuidToHostResolver(uuid) ?: return@forEach
-            try {
-                val response = client.post("receive") {
+            val response: HttpResponse = try {
+                client.post("receive") {
                     host = clientReceiverHost
                     port = Configuration.CLIENT_PORT
                     setBody(message)
                 }
-                if (response.status.value.let { it in 500..599 }) {
-                    println("Error to $clientReceiverHost")
-                    onError(message, uuid)
-                } else {
-                    println("Distributed message from ${uuidToHostResolver(message.sourceUser)} to $clientReceiverHost! -> $response")
-                }
             } catch (e: HttpRequestTimeoutException) {
                 println("Timout to $clientReceiverHost")
                 onTimout(message, uuid)
+                return@forEach
+            }
+
+            if (response.status.value.let { it in 500..599 }) {
+                println("Error to $clientReceiverHost")
+                onError(message, uuid)
+            } else {
+                println("Distributed message from ${uuidToHostResolver(message.sourceUser)} to $clientReceiverHost! -> $response")
             }
         }
     }

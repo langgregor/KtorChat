@@ -74,7 +74,7 @@ class MessageServer(private val userManager: UserManager) {
                 post("/login") {
                     val userdata = call.receive<UserData>()
                     val response = userManager.login(userdata, call.request.local.remoteHost)
-                    call.respondIf(check = { response.success }) {
+                    call.respondIf(payload = response, check = { response.success }) {
                         sendServerMessage("${userdata.username} joined.")
                     }
                 }
@@ -105,15 +105,19 @@ class MessageServer(private val userManager: UserManager) {
         messageChannel.send(MessageData(emptySet(), SERVER_UUID, message, SERVER_NAME))
 
     private suspend fun ApplicationCall.respondIf(
+        payload: Any? = null,
         statusCodeFail: HttpStatusCode = HttpStatusCode.Unauthorized,
         check: () -> Boolean,
         block: suspend () -> Unit
     ) {
+        var code = statusCodeFail
         if (check()) {
             block()
-            this.respond(HttpStatusCode.OK)
-        } else {
-            this.respond(statusCodeFail)
+            code = HttpStatusCode.OK
+        }
+
+        code.let {
+            if (payload == null) this.respond(it) else this.respond(it, payload)
         }
     }
 

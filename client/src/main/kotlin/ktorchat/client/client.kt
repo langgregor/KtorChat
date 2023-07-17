@@ -11,8 +11,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 fun main() {
-    val userName = "Gregor" // TODO: input from cmd
-    val serverHost = "192.168.1.140" // TODO: input from cmd
+    val userName = readUsername()
+    val serverHost = readHostAddress()
 
     val sender = MessageSender(serverHost)
     val receiver = MessageReceiver(serverHost)
@@ -45,4 +45,14 @@ fun main() {
             sender.logout(LogoutData(uuid))
         }
     }
+}
+
+fun readHostAddress(): String {
+    print("Enter Hostname: ")
+    return readln()
+}
+
+fun readUsername(): String {
+    print("Enter Username: ")
+    return readln()
 }

@@ -2,6 +2,7 @@ package ktorchat.common
 
 import io.ktor.server.plugins.requestvalidation.*
 
+
 enum class AllowedUserNameCharacters(val description: String, val test: (String) -> Boolean) {
     ALL("all", { true }),
     ALPHANUMERIC("alphanumeric", { s -> s.all { it.isLetterOrDigit() } }),
@@ -17,14 +18,14 @@ fun RequestValidationConfig.validateUserData(
         val username = it.username
 
         if (username.length < minUserNameLength || username.length > maxUserNameLength) {
-            ValidationResult.Invalid("Username has to be between $minUserNameLength and $maxUserNameLength characters!")
+            return@validate ValidationResult.Invalid("Username has to be between $minUserNameLength and $maxUserNameLength characters!")
         }
 
         if (allowedUserNameCharacters.test(username)) {
-            ValidationResult.Invalid("Username can only contain ${allowedUserNameCharacters.description} characters!")
+            return@validate ValidationResult.Invalid("Username can only contain ${allowedUserNameCharacters.description} characters!")
         }
 
-        ValidationResult.Valid
+        return@validate ValidationResult.Valid
     }
 }
 
